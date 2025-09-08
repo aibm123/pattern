@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vietnam Ancient Design Pattern & AI Mockup Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .hidden { display: none; }
+        .card {
+            background-color: #2c2c2c;
+            border-radius: 12px;
+            border: 1px solid #444;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            border-color: #d4af37;
+        }
+        .btn {
+            background-color: #d4af37;
+            color: #1a1a1a;
+            font-weight: 700;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+        .btn:disabled {
+            background-color: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+        .btn:hover:not(:disabled) {
+            background-color: #c09e32;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid #d4af37;
+            color: #d4af37;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background-color: rgba(212, 175, 55, 0.1);
+        }
+        .btn-danger {
+            background-color: transparent;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+        .btn-danger:hover:not(:disabled) {
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+        input, textarea {
+            background-color: #333;
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: #e0e0e0;
+            width: 100%;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #d4af37;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #d4af37;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        .small-loader { width: 16px; height: 16px; border-width: 2px; }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 40;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #2c2c2c;
+            padding: 2rem;
+            border-radius: 12px;
+            z-index: 50;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-root" class="app-container">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8 pb-4 border-b border-gray-700">
+            <h1 class="text-3xl font-bold text-white tracking-wider">
+                <span class="text-[#d4af37]">Cổ Vân</span> Họa Sáng Tạo
+            </h1>
+            <div id="user-actions" class="flex items-center gap-4">
+                 <button id="my-collection-btn" class="btn btn-secondary hidden">Bộ sưu tập</button>
+                 <button id="logout-btn" class="btn btn-secondary hidden">Đăng xuất</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Login/Register Page -->
+            <section id="auth-page">
+                <div class="max-w-md mx-auto card p-8">
+                    <!-- Login Form -->
+                    <div id="login-view">
+                        <h2 class="text-2xl font-bold text-center mb-6">Đăng nhập</h2>
+                        <form id="login-form" class="space-y-6">
+                            <div>
+                                <label for="email" class="block mb-2 text-sm font-medium">Email</label>
+                                <input type="email" id="email" placeholder="Nhập email của bạn" required>
+                            </div>
+                            <div>
+                                <label for="password" class="block mb-2 text-sm font-medium">Mật khẩu</label>
+                                <input type="password" id="password" placeholder="••••••••" required>
+                            </div>
+                            <button type="submit" class="btn w-full">Đăng nhập</button>
+                            <p id="login-error" class="text-red-400 text-sm text-center mt-2"></p>
+                        </form>
+                        <p class="text-center text-sm text-gray-400 mt-4">
+                            Chưa có tài khoản? <button id="show-register-view-btn" class="font-medium text-[#d4af37] hover:underline">Đăng ký</button>
+                        </p>
+                    </div>
+                    <!-- Register Form -->
+                    <div id="register-view" class="hidden">
+                        <h2 class="text-2xl font-bold text-center mb-6">Đăng ký tài khoản</h2>
+                        <form id="register-form" class="space-y-6">
+                            <div>
+                                <label for="register-email" class="block mb-2 text-sm font-medium">Email</label>
+                                <input type="email" id="register-email" placeholder="Nhập email của bạn" required>
+                            </div>
+                            <div>
+                                <label for="register-password" class="block mb-2 text-sm font-medium">Mật khẩu</label>
+                                <input type="password" id="register-password" placeholder="••••••••" required>
+                            </div>
+                            <div>
+                                <label for="register-confirm-password" class="block mb-2 text-sm font-medium">Xác nhận Mật khẩu</label>
+                                <input type="password" id="register-confirm-password" placeholder="••••••••" required>
+                            </div>
+                            <button type="submit" class="btn w-full">Đăng ký</button>
+                            <p id="register-error" class="text-red-400 text-sm text-center mt-2"></p>
+                        </form>
+                        <p class="text-center text-sm text-gray-400 mt-4">
+                            Đã có tài khoản? <button id="show-login-view-btn" class="font-medium text-[#d4af37] hover:underline">Đăng nhập</button>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Admin Dashboard -->
+            <section id="admin-dashboard" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Quản lý Họa tiết</h2>
+                    <button id="show-upload-modal-btn" class="btn">Tải lên Họa tiết mới</button>
+                </div>
+                <div id="admin-hub-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Admin patterns will be loaded here -->
+                </div>
+            </section>
+
+            <!-- User Hub -->
+            <section id="user-hub" class="hidden">
+                <h2 class="text-2xl font-bold mb-6">Thư viện Họa tiết Cổ Việt Nam</h2>
+                <div id="user-hub-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- User patterns will be loaded here -->
+                </div>
+            </section>
+
+            <!-- User Generations Page -->
+            <section id="user-generations-page" class="hidden">
+                <div class="flex items-center gap-4 mb-6">
+                    <button id="back-to-hub-btn-from-collection" class="btn btn-secondary">&larr; Quay lại Thư viện</button>
+                    <h2 class="text-2xl font-bold">Bộ sưu tập của bạn</h2>
+                </div>
+                <div id="user-generations-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- User's generated images will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Generator Page -->
+            <section id="generator-page" class="hidden">
+                 <button id="back-to-hub-btn" class="btn btn-secondary mb-6">&larr; Quay lại Thư viện</button>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Left Column: Pattern Info & Mockup Suggestions -->
+                    <div class="space-y-6">
+                        <div id="selected-pattern-info" class="card p-6">
+                           <!-- Selected pattern details here -->
+                        </div>
+                        <div class="card p-6">
+                            <h3 class="text-xl font-bold mb-4">Bước 1: Đề xuất Mockup</h3>
+                            <button id="suggest-mockups-btn" class="btn w-full">Gợi ý Mockup với AI</button>
+                            <div id="mockup-suggestions-loader" class="hidden mx-auto mt-4 loader"></div>
+                            <div id="mockup-suggestions" class="mt-4 space-y-3"></div>
+                        </div>
+                    </div>
+                    <!-- Right Column: Image Generation -->
+                    <div class="card p-6">
+                        <h3 class="text-xl font-bold mb-4">Bước 2: Sáng tạo Hình ảnh</h3>
+                        <div id="generation-area" class="space-y-4">
+                             <p class="text-gray-400 text-center">Chọn một đề xuất ở Bước 1 để bắt đầu.</p>
+                        </div>
+                        <div id="generated-image-container" class="mt-4">
+                            <div id="generation-loader" class="hidden mx-auto loader"></div>
+                            <img id="generated-image" class="hidden w-full h-auto rounded-lg" src="" alt="Generated Mockup">
+                             <button id="save-to-collection-btn" class="btn w-full mt-4 hidden">Lưu vào bộ sưu tập</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Admin Upload/Edit Modal -->
+    <div id="edit-modal" class="hidden modal-backdrop">
+        <div class="modal-content">
+            <h3 id="modal-title" class="text-xl font-bold mb-4">Sửa Họa tiết</h3>
+            <form id="edit-form" class="space-y-4">
+                <input type="hidden" id="edit-id">
+                <input type="text" id="edit-name" placeholder="Tên họa tiết" required>
+                <div class="relative">
+                    <textarea id="edit-notes" placeholder="Mô tả, ghi chú về họa tiết" rows="4" required></textarea>
+                    <button type="button" id="ai-gen-desc-btn" class="absolute top-2 right-2 btn btn-secondary text-xs p-1">
+                        <span id="ai-gen-desc-text">AI Gen Mô tả</span>
+                        <div id="ai-gen-desc-loader" class="hidden small-loader"></div>
+                    </button>
+                </div>
+                <div id="file-upload-section">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium">Ảnh họa tiết gốc (File 1)</label>
+                        <div id="edit-file1-preview" class="mb-2"></div>
+                        <input type="file" id="edit-file1" accept="image/*" class="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-[#d4af37] hover:file:bg-yellow-100">
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium">Ảnh Vector/Nét vẽ (File 2)</label>
+                         <button type="button" id="ai-gen-file2-btn" class="btn btn-secondary text-xs p-2 mb-2 w-full">
+                            <span id="ai-gen-file2-text">Tạo ảnh Vector (File 2) từ ảnh gốc (File 1)</span>
+                            <div id="ai-gen-file2-loader" class="hidden small-loader"></div>
+                        </button>
+                        <div id="edit-file2-preview" class="mb-2"></div>
+                        <input type="file" id="edit-file2" accept="image/*" class="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-[#d4af37] hover:file:bg-yellow-100">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-4">
+                    <button type="button" id="cancel-edit-btn" class="btn btn-secondary">Hủy</button>
+                    <button type="submit" class="btn">Lưu thay đổi</button>
+                </div>
+                 <div id="edit-loader" class="hidden mx-auto mt-4 loader"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+     <div id="delete-modal" class="hidden modal-backdrop">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">Xác nhận Xóa</h3>
+            <p>Bạn có chắc chắn muốn xóa họa tiết "<span id="delete-pattern-name" class="font-bold"></span>"? Hành động này không thể hoàn tác.</p>
+            <div class="flex justify-end gap-4 mt-6">
+                <button type="button" id="cancel-delete-btn" class="btn btn-secondary">Hủy</button>
+                <button type="button" id="confirm-delete-btn" class="btn btn-danger">Xóa</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- CONFIGURATION ---
+        const config = {
+            baserow: {
+                host: 'https://api.baserow.io',
+                token: 'Tw8zUIuzjFIjrbyCO1SEp708IieXYjzI',
+                tableIds: { user: 667631, hub: 667632, gen: 667633 }
+            },
+            gemini: {
+                apiKey: 'AIzaSyDiUWJuDt0VGce3wGG7jWLKBt3UNRsx1JA',
+                textModel: 'gemini-2.5-flash-preview-05-20',
+                imageModel: 'gemini-2.5-flash-image-preview',
+            },
+            n8n: {
+                webhook: 'https://aps.aibm.space/webhook/pattern1'
+            }
+        };
+
+        // --- STATE MANAGEMENT ---
+        let state = {
+            currentPage: 'auth-page',
+            currentUser: null,
+            hubPatterns: [],
+            userGenerations: [],
+            selectedPattern: null,
+            generatedImageBase64: null,
+            editingPattern: null, 
+            generatedFile2Base64: null,
+        };
+
+        // --- DOM ELEMENTS ---
+        const mainContent = document.getElementById('main-content');
+        const pages = mainContent.querySelectorAll('section');
+        const logoutBtn = document.getElementById('logout-btn');
+        const myCollectionBtn = document.getElementById('my-collection-btn');
+
+        // --- API HELPERS ---
+        // Direct Baserow API for GET, PATCH (edit text), DELETE
+        async function baserowRequest(method, tableId, { rowId = '', data = null } = {}) {
+            const url = `${config.baserow.host}/api/database/rows/table/${tableId}/${rowId}?user_field_names=true`;
+            const options = {
+                method,
+                headers: { 'Authorization': `Token ${config.baserow.token}`, 'Content-Type': 'application/json' }
+            };
+            if (data) options.body = JSON.stringify(data);
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                const error = await response.json();
+                console.error(`Baserow API Error (${method} ${tableId}/${rowId}):`, error);
+                throw new Error(`Baserow API request failed: ${response.statusText}`);
+            }
+            if (method !== 'DELETE') return response.json();
+            return true;
+        }
+
+        // n8n Webhook for CREATE operations
+        async function saveViaWebhook(payload) {
+            const response = await fetch(config.n8n.webhook, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Webhook Error:', errorText);
+                throw new Error(`Webhook request failed: ${response.statusText}`);
+            }
+             // FIX: Handle text response from webhook
+            const responseText = await response.text();
+            if (responseText.trim().toLowerCase() === 'success') {
+                return { status: 'success' };
+            } else {
+                throw new Error('Webhook did not return "success". Response: ' + responseText);
+            }
+        }
+
+        async function imageUrlToBase64(url) {
+            const proxyUrl = 'https://api.allorigins.win/raw?url=';
+            try {
+                const response = await fetch(`${proxyUrl}${encodeURIComponent(url)}`);
+                if (!response.ok) throw new Error(`Failed to fetch through proxy: ${response.statusText}`);
+                const blob = await response.blob();
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                console.error("Error converting image to Base64:", error);
+                return null;
+            }
+        }
+        
+        const fileToBase64 = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = error => reject(error);
+        });
+        
+        async function generateText(prompt, useSearch = false) {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.gemini.textModel}:generateContent?key=${config.gemini.apiKey}`;
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+            if (useSearch) {
+                payload.tools = [{ "google_search": {} }];
+            }
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
+            const result = await response.json();
+            return result.candidates[0].content.parts[0].text;
+        }
+        
+        async function generateImage(prompt, base64ImageData) {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.gemini.imageModel}:generateContent?key=${config.gemini.apiKey}`;
+            const payload = {
+                contents: [{ parts: [ { text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64ImageData } } ] }],
+                generationConfig: { responseModalities: ['IMAGE'] }
+            };
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) {
+                const errorBody = await response.json();
+                console.error('Gemini API Error Body:', errorBody);
+                throw new Error(`API call failed with status: ${response.status}`);
+            }
+            const result = await response.json();
+            const imagePart = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+            if (!imagePart) throw new Error("Could not find generated image in API response.");
+            return imagePart.inlineData.data;
+        }
+
+        // --- PAGE ROUTING & VIEWS ---
+        function showPage(pageId) {
+            pages.forEach(page => page.classList.toggle('hidden', page.id !== pageId));
+            state.currentPage = pageId;
+            window.scrollTo(0, 0);
+        }
+
+        function switchAuthView(view) { // 'login' or 'register'
+            document.getElementById('login-view').classList.toggle('hidden', view !== 'login');
+            document.getElementById('register-view').classList.toggle('hidden', view !== 'register');
+            document.getElementById('login-error').textContent = '';
+            document.getElementById('register-error').textContent = '';
+        }
+
+        // --- RENDER FUNCTIONS ---
+        function renderHubGrid(containerId, patterns, is_admin = false) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = patterns.length === 0 ? '<p>Chưa có họa tiết nào trong thư viện.</p>' : '';
+            patterns.forEach(pattern => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                if (is_admin) {
+                    const file1Url = pattern.File?.[0]?.url || 'https://placehold.co/400x300/2c2c2c/e0e0e0?text=File+1';
+                    const file2Url = pattern['File 2']?.[0]?.url || 'https://placehold.co/400x300/2c2c2c/e0e0e0?text=File+2';
+                    card.innerHTML = `
+                        <div class="grid grid-cols-2 gap-1">
+                            <div><img src="${file1Url}" alt="${pattern.Name} File 1" class="w-full h-32 object-cover"><p class="text-xs text-center bg-gray-800 p-1">Ảnh Gốc (File 1)</p></div>
+                            <div><img src="${file2Url}" alt="${pattern.Name} File 2" class="w-full h-32 object-cover"><p class="text-xs text-center bg-gray-800 p-1">Ảnh Vector (File 2)</p></div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg truncate">${pattern.Name}</h3>
+                            <p class="text-gray-400 text-sm h-10 overflow-hidden text-ellipsis">${pattern.Notes || ''}</p>
+                             <div class="flex gap-2 mt-4">
+                                <button class="btn btn-secondary text-sm p-2 flex-1 edit-btn" data-id="${pattern.id}">Sửa</button>
+                                <button class="btn btn-danger text-sm p-2 flex-1 delete-btn" data-id="${pattern.id}" data-name="${pattern.Name}">Xóa</button>
+                            </div>
+                        </div>`;
+                } else {
+                    const imageUrl = pattern['File 2']?.[0]?.url || pattern.File?.[0]?.url || 'https://placehold.co/400x300/2c2c2c/e0e0e0?text=No+Image';
+                    card.classList.add('cursor-pointer');
+                    card.innerHTML = `
+                        <img src="${imageUrl}" alt="${pattern.Name}" class="w-full h-48 object-cover">
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg truncate">${pattern.Name}</h3>
+                            <p class="text-gray-400 text-sm h-10 overflow-hidden text-ellipsis">${pattern.Notes || ''}</p>
+                        </div>`;
+                    card.addEventListener('click', () => {
+                        state.selectedPattern = pattern;
+                        showPage('generator-page');
+                        renderGeneratorPage();
+                    });
+                }
+                container.appendChild(card);
+            });
+
+            if (is_admin) {
+                container.querySelectorAll('.edit-btn').forEach(b => b.addEventListener('click', () => handleEditClick(b.dataset.id)));
+                container.querySelectorAll('.delete-btn').forEach(b => b.addEventListener('click', () => handleDeleteClick(b.dataset.id, b.dataset.name)));
+            }
+        }
+
+        function renderUserGenerations() {
+            const container = document.getElementById('user-generations-grid');
+            const userGens = state.userGenerations.filter(g => g.user?.some(u => u.id === state.currentUser.id));
+            container.innerHTML = userGens.length === 0 ? '<p>Bạn chưa có hình ảnh nào trong bộ sưu tập.</p>' : '';
+            userGens.forEach(gen => {
+                const imageUrl = gen.File?.[0]?.url || 'https://placehold.co/400x300';
+                const hubPattern = state.hubPatterns.find(p => p.id === gen.hub?.[0]?.id);
+                const card = document.createElement('a');
+                card.href = imageUrl;
+                card.target = "_blank";
+                card.download = `CoVan_${gen.id}.png`;
+                card.className = "card block group";
+                card.innerHTML = `
+                    <div class="relative">
+                        <img src="${imageUrl}" alt="Generated image" class="w-full h-48 object-cover">
+                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <p class="text-white font-bold">Xem / Tải về</p>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-sm text-gray-300 truncate" title="${gen.prompt}">${gen.prompt}</p>
+                        <p class="text-xs text-gray-500 mt-1">Từ: ${hubPattern?.Name || 'Không rõ'}</p>
+                    </div>`;
+                container.appendChild(card);
+            });
+        }
+        
+        function renderGeneratorPage() {
+            if (!state.selectedPattern) return;
+            const pattern = state.selectedPattern;
+            const infoContainer = document.getElementById('selected-pattern-info');
+            const file1Url = pattern.File?.[0]?.url;
+            const file2Url = pattern['File 2']?.[0]?.url;
+
+            let imagesHTML = '';
+            if (file1Url) {
+                 imagesHTML += `<img src="${file1Url}" alt="${pattern.Name}" class="w-full h-auto rounded-lg mb-4 max-h-60 object-contain bg-black/20">`;
+                 imagesHTML += `<p class="text-xs text-center text-gray-400 mb-2">Ảnh Gốc Tham Khảo</p>`;
+            }
+            if(file2Url) {
+                imagesHTML += `<img src="${file2Url}" alt="${pattern.Name} Vector" class="w-full h-auto rounded-lg mb-4 max-h-60 object-contain bg-white/90 p-2">`;
+                imagesHTML += `<p class="text-xs text-center text-gray-400 mb-2">Ảnh Vector/Nét vẽ (sẽ dùng để tạo hình)</p>`;
+            }
+
+            infoContainer.innerHTML = `
+                <h2 class="text-2xl font-bold mb-4">${pattern.Name}</h2>
+                ${imagesHTML}
+                <p class="text-gray-300">${pattern.Notes || ''}</p>
+            `;
+
+            document.getElementById('mockup-suggestions').innerHTML = '';
+            document.getElementById('generation-area').innerHTML = `<p class="text-gray-400 text-center">Chọn một đề xuất ở Bước 1 để bắt đầu.</p>`;
+            document.getElementById('generated-image').src = '';
+            document.getElementById('generated-image').classList.add('hidden');
+            document.getElementById('save-to-collection-btn').classList.add('hidden');
+            state.generatedImageBase64 = null;
+        }
+
+        // --- EVENT HANDLERS & LOGIC ---
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value, pass = document.getElementById('password').value;
+            try {
+                const { results: users } = await baserowRequest('GET', config.baserow.tableIds.user);
+                const foundUser = users.find(u => u.email === email && u.pass === pass);
+                if (!foundUser) throw new Error("Email hoặc mật khẩu không đúng.");
+                state.currentUser = { id: foundUser.id, email: foundUser.email, role: foundUser.role?.value.toLowerCase() || 'user' };
+                logoutBtn.classList.remove('hidden');
+                await loadAllPatterns();
+                if (state.currentUser.role === 'admin') {
+                    showPage('admin-dashboard');
+                    renderHubGrid('admin-hub-grid', state.hubPatterns, true);
+                } else {
+                    myCollectionBtn.classList.remove('hidden');
+                    await loadUserGenerations();
+                    showPage('user-hub');
+                    renderHubGrid('user-hub-grid', state.hubPatterns, false);
+                }
+            } catch (error) { document.getElementById('login-error').textContent = error.message; }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const email = document.getElementById('register-email').value;
+            const pass = document.getElementById('register-password').value;
+            const confirmPass = document.getElementById('register-confirm-password').value;
+            const errorEl = document.getElementById('register-error');
+            errorEl.textContent = '';
+
+            if (pass !== confirmPass) {
+                errorEl.textContent = 'Mật khẩu xác nhận không khớp.';
+                return;
+            }
+            if(pass.length < 3) {
+                errorEl.textContent = 'Mật khẩu phải có ít nhất 3 ký tự.';
+                return;
+            }
+
+            try {
+                const { results: users } = await baserowRequest('GET', config.baserow.tableIds.user);
+                if (users.some(u => u.email === email)) {
+                    errorEl.textContent = 'Email này đã được sử dụng.';
+                    return;
+                }
+                
+                await baserowRequest('POST', config.baserow.tableIds.user, { data: { email, pass } });
+                
+                alert('Đăng ký thành công! Vui lòng đăng nhập.');
+                switchAuthView('login');
+                document.getElementById('register-form').reset();
+
+            } catch (error) {
+                errorEl.textContent = 'Đã xảy ra lỗi khi đăng ký.';
+                console.error("Registration Error:", error);
+            }
+        }
+        
+        function handleLogout() {
+            state = { currentPage: 'auth-page', currentUser: null, hubPatterns: [], userGenerations: [], selectedPattern: null, generatedImageBase64: null, editingPattern: null, generatedFile2Base64: null };
+            logoutBtn.classList.add('hidden');
+            myCollectionBtn.classList.add('hidden');
+            showPage('auth-page');
+            switchAuthView('login');
+            document.getElementById('login-form').reset();
+        }
+        
+        async function loadAllPatterns() {
+            const { results } = await baserowRequest('GET', config.baserow.tableIds.hub);
+            state.hubPatterns = results.sort((a,b) => new Date(b['Created on']) - new Date(a['Created on']));
+        }
+        
+        async function loadUserGenerations() {
+            const { results } = await baserowRequest('GET', config.baserow.tableIds.gen);
+            state.userGenerations = results.sort((a,b) => new Date(b['Created on']) - new Date(a['Created on']));
+        }
+
+        function handleEditClick(id) {
+            state.editingPattern = id === 'new' ? {id: 'new'} : state.hubPatterns.find(p => p.id == id);
+            if (!state.editingPattern) return;
+            state.generatedFile2Base64 = null;
+            
+            const modal = document.getElementById('edit-modal');
+            document.getElementById('edit-form').reset();
+            const isNew = id === 'new';
+
+            document.getElementById('file-upload-section').style.display = isNew ? 'block' : 'none';
+            document.getElementById('ai-gen-desc-btn').style.display = 'block'; 
+            
+            document.getElementById('modal-title').textContent = isNew ? 'Tải lên Họa tiết mới' : 'Sửa Họa tiết';
+            document.getElementById('edit-id').value = state.editingPattern.id;
+            document.getElementById('edit-name').value = state.editingPattern.Name || '';
+            document.getElementById('edit-notes').value = state.editingPattern.Notes || '';
+            
+            document.getElementById('edit-file1-preview').innerHTML = isNew ? '' : (state.editingPattern.File?.[0] ? `<img src="${state.editingPattern.File[0].url}" class="h-16 w-auto">` : '');
+            document.getElementById('edit-file2-preview').innerHTML = isNew ? '' : (state.editingPattern['File 2']?.[0] ? `<img src="${state.editingPattern['File 2'][0].url}" class="h-16 w-auto">` : '');
+
+            modal.classList.remove('hidden');
+        }
+
+        async function handleEditFormSubmit(e) {
+            e.preventDefault();
+            const loader = document.getElementById('edit-loader');
+            loader.classList.remove('hidden');
+            const id = document.getElementById('edit-id').value;
+            const isNew = id === 'new';
+
+            try {
+                if (isNew) {
+                    // CREATE NEW RECORD VIA WEBHOOK
+                    const file1Input = document.getElementById('edit-file1');
+                    const file2Input = document.getElementById('edit-file2');
+
+                    if (!file1Input.files[0] && !state.editingPattern.File) {
+                        throw new Error("Vui lòng cung cấp 'Ảnh họa tiết gốc (File 1)'.");
+                    }
+
+                    const payload = {
+                        task: 'admin_create_hub',
+                        name: document.getElementById('edit-name').value,
+                        notes: document.getElementById('edit-notes').value,
+                        file1_base64: null,
+                        file1_name: null,
+                        file2_base64: null,
+                        file2_name: null
+                    };
+
+                    if (file1Input.files[0]) {
+                        payload.file1_base64 = await fileToBase64(file1Input.files[0]);
+                        payload.file1_name = file1Input.files[0].name;
+                    }
+
+                    if (file2Input.files[0]) {
+                        payload.file2_base64 = await fileToBase64(file2Input.files[0]);
+                        payload.file2_name = file2Input.files[0].name;
+                    } else if (state.generatedFile2Base64) {
+                        payload.file2_base64 = state.generatedFile2Base64;
+                        payload.file2_name = `file2_gen_${Date.now()}.png`;
+                    }
+                    
+                    await saveViaWebhook(payload);
+                    alert('Tạo mới họa tiết thành công!');
+
+                } else {
+                    // EDIT EXISTING RECORD VIA DIRECT API (TEXT ONLY)
+                    const data = {
+                        "Name": document.getElementById('edit-name').value,
+                        "Notes": document.getElementById('edit-notes').value,
+                    };
+                    await baserowRequest('PATCH', config.baserow.tableIds.hub, { rowId: id, data });
+                    alert('Cập nhật thành công!');
+                }
+
+                document.getElementById('edit-modal').classList.add('hidden');
+                await loadAllPatterns();
+                renderHubGrid('admin-hub-grid', state.hubPatterns, true);
+
+            } catch (error) {
+                alert('Lưu thất bại: ' + error.message);
+                console.error("Save/Edit Error:", error);
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        function handleDeleteClick(id, name) {
+            state.deletingPatternId = id;
+            document.getElementById('delete-pattern-name').textContent = name;
+            document.getElementById('delete-modal').classList.remove('hidden');
+        }
+
+        async function handleConfirmDelete() {
+            try {
+                await baserowRequest('DELETE', config.baserow.tableIds.hub, { rowId: state.deletingPatternId });
+                document.getElementById('delete-modal').classList.add('hidden');
+                await loadAllPatterns();
+                renderHubGrid('admin-hub-grid', state.hubPatterns, true);
+            } catch (error) { alert('Xóa thất bại: ' + error.message); }
+        }
+
+        async function handleSuggestMockups() {
+            if (!state.selectedPattern) return;
+            const loader = document.getElementById('mockup-suggestions-loader');
+            const container = document.getElementById('mockup-suggestions');
+            const btn = document.getElementById('suggest-mockups-btn');
+            loader.classList.remove('hidden');
+            btn.disabled = true;
+            container.innerHTML = '';
+             // FIX: Sanitize notes field to avoid prompt injection issues.
+            const prompt = `Dựa trên họa tiết cổ Việt Nam có tên "${state.selectedPattern.Name}" với mô tả "${state.selectedPattern.Notes || 'Không có mô tả'}", hãy đề xuất 3 ý tưởng mockup sáng tạo để ứng dụng họa tiết này. Với mỗi ý tưởng, hãy cung cấp một tên gọi ngắn gọn (ví dụ: 'Áo dài lụa', 'Bình gốm thời Lê') và một câu lệnh (prompt) chi tiết bằng tiếng Anh để tạo hình ảnh. Định dạng đầu ra là một mảng JSON gồm các đối tượng, mỗi đối tượng có key là 'name' và 'prompt'. Chỉ trả về mảng JSON.`;
+            try {
+                const responseText = await generateText(prompt);
+                const suggestions = JSON.parse(responseText.replace(/```json|```/g, '').trim());
+                container.innerHTML = suggestions.map(s => 
+                    `<button class="btn btn-secondary w-full text-left" data-prompt="${s.prompt.replace(/"/g, '&quot;')}">
+                        <strong>${s.name}</strong><br>
+                        <span class="text-xs text-gray-400">${s.prompt}</span>
+                    </button>`
+                ).join('');
+                container.querySelectorAll('button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const promptText = button.dataset.prompt;
+                        const genArea = document.getElementById('generation-area');
+                        genArea.innerHTML = `
+                             <p class="font-semibold">Prompt đã chọn:</p>
+                             <textarea id="generation-prompt" rows="3" class="text-sm">${promptText}</textarea>
+                             <button id="generate-image-btn" class="btn w-full">Tạo hình ảnh</button>
+                        `;
+                        document.getElementById('generate-image-btn').addEventListener('click', handleGenerateImage);
+                    });
+                });
+            } catch (error) {
+                console.error("Suggestion Error:", error);
+                container.innerHTML = '<p class="text-red-400">Không thể tạo đề xuất. Vui lòng thử lại.</p>';
+            } finally {
+                loader.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+        
+        async function handleGenerateImage() {
+            const originalPrompt = document.getElementById('generation-prompt').value;
+            if (!originalPrompt || !state.selectedPattern) return;
+            const loader = document.getElementById('generation-loader');
+            const imageEl = document.getElementById('generated-image');
+            const saveBtn = document.getElementById('save-to-collection-btn');
+            loader.classList.remove('hidden');
+            imageEl.classList.add('hidden');
+            saveBtn.classList.add('hidden');
+            try {
+                const pattern = state.selectedPattern;
+                const imageUrl = pattern['File 2']?.[0]?.url || pattern.File?.[0]?.url;
+                if (!imageUrl) {
+                    throw new Error('Họa tiết này không có ảnh để tạo hình.');
+                }
+                const base64Image = await imageUrlToBase64(imageUrl);
+                if(!base64Image) throw new Error("Could not convert image to base64");
+
+                const newPrompt = `Using the provided black and white pattern image as a texture map or embroidery pattern, apply it realistically to the objects in the following scene: "${originalPrompt}". The pattern should follow the contours and lighting of the objects. Do not introduce other patterns.`;
+                const generatedBase64 = await generateImage(newPrompt, base64Image);
+
+                if (generatedBase64) {
+                    state.generatedImageBase64 = generatedBase64;
+                    imageEl.src = `data:image/png;base64,${generatedBase64}`;
+                    imageEl.classList.remove('hidden');
+                    saveBtn.classList.remove('hidden');
+                }
+            } catch (error) {
+                 console.error(error);
+                 alert(`Tạo ảnh thất bại: ${error.message}`);
+            } finally {
+                 loader.classList.add('hidden');
+            }
+        }
+        
+        async function handleSaveToCollection() {
+            if (!state.generatedImageBase64 || !state.currentUser || !state.selectedPattern) return;
+            const btn = document.getElementById('save-to-collection-btn');
+            btn.disabled = true;
+            btn.textContent = 'Đang lưu...';
+            try {
+                const prompt = document.getElementById('generation-prompt').value;
+                const payload = {
+                    task: 'user', // FIX: Changed task name as requested
+                    name: prompt.substring(0, 50) + '...',
+                    prompt: prompt,
+                    hub_id: state.selectedPattern.id,
+                    user_id: state.currentUser.id,
+                    file_gen_base64: state.generatedImageBase64,
+                    file_gen_name: `gen_${Date.now()}.png`
+                };
+
+                await saveViaWebhook(payload);
+                alert('Đã lưu thành công vào bộ sưu tập!');
+                btn.textContent = 'Đã lưu!';
+                await loadUserGenerations();
+
+            } catch(error) {
+                console.error("Save failed:", error);
+                alert('Lưu ảnh thất bại.');
+                btn.disabled = false;
+                btn.textContent = 'Lưu vào bộ sưu tập';
+            }
+        }
+        
+        async function handleAiGenDesc() {
+            const name = document.getElementById('edit-name').value;
+            if (!name) { alert('Vui lòng nhập tên họa tiết trước.'); return; }
+            const btn = document.getElementById('ai-gen-desc-btn');
+            const loader = document.getElementById('ai-gen-desc-loader');
+            const textEl = document.getElementById('ai-gen-desc-text');
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+            textEl.classList.add('hidden');
+            try {
+                const prompt = `Dựa trên kết quả tìm kiếm Google cho từ khóa "${name}", hãy viết một đoạn mô tả chi tiết (khoảng 100-150 từ) bằng tiếng Việt về nguồn gốc, ý nghĩa và đặc điểm của họa tiết cổ này.`;
+                const desc = await generateText(prompt, true);
+                document.getElementById('edit-notes').value = desc;
+            } catch (error) { alert('Tạo mô tả thất bại.'); }
+            finally { btn.disabled = false; loader.classList.add('hidden'); textEl.classList.remove('hidden'); }
+        }
+
+        async function handleAiGenFile2() {
+            const file1Input = document.getElementById('edit-file1');
+            let base64Image;
+            const btn = document.getElementById('ai-gen-file2-btn');
+            const loader = document.getElementById('ai-gen-file2-loader');
+            const textEl = document.getElementById('ai-gen-file2-text');
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+            textEl.classList.add('hidden');
+            try {
+                if (file1Input.files.length > 0) {
+                    base64Image = await fileToBase64(file1Input.files[0]);
+                } else {
+                    throw new Error("Vui lòng cung cấp 'Ảnh họa tiết gốc (File 1)' trước.");
+                }
+
+                const prompt = "Create a clean, black and white vector line art of the ancient pattern in this image. Preserve all details and lines clearly. The background should be pure white.";
+                const generatedBase64 = await generateImage(prompt, base64Image);
+                state.generatedFile2Base64 = generatedBase64;
+                document.getElementById('edit-file2-preview').innerHTML = `<img src="data:image/png;base64,${generatedBase64}" class="h-16 w-auto border border-dashed border-yellow-400 p-1">`;
+
+            } catch (error) { alert('Tạo ảnh Vector thất bại: ' + error.message); }
+            finally { btn.disabled = false; loader.classList.add('hidden'); textEl.classList.remove('hidden'); }
+        }
+
+        // --- INITIALIZATION ---
+        function init() {
+            // Auth
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegister);
+            logoutBtn.addEventListener('click', handleLogout);
+            document.getElementById('show-register-view-btn').addEventListener('click', () => switchAuthView('register'));
+            document.getElementById('show-login-view-btn').addEventListener('click', () => switchAuthView('login'));
+
+            // Page navigation
+            myCollectionBtn.addEventListener('click', () => { showPage('user-generations-page'); renderUserGenerations(); });
+            document.getElementById('back-to-hub-btn-from-collection').addEventListener('click', () => showPage('user-hub'));
+            document.getElementById('back-to-hub-btn').addEventListener('click', () => showPage('user-hub'));
+
+            // Generator Page
+            document.getElementById('suggest-mockups-btn').addEventListener('click', handleSuggestMockups);
+            document.getElementById('save-to-collection-btn').addEventListener('click', handleSaveToCollection);
+
+            // Admin Modal & Actions
+            document.getElementById('show-upload-modal-btn').addEventListener('click', () => handleEditClick('new'));
+            document.getElementById('cancel-edit-btn').addEventListener('click', () => document.getElementById('edit-modal').classList.add('hidden'));
+            document.getElementById('edit-form').addEventListener('submit', handleEditFormSubmit);
+
+            // Delete Modal
+            document.getElementById('cancel-delete-btn').addEventListener('click', () => document.getElementById('delete-modal').classList.add('hidden'));
+            document.getElementById('confirm-delete-btn').addEventListener('click', handleConfirmDelete);
+            
+            // AI Gen Buttons
+            document.getElementById('ai-gen-desc-btn').addEventListener('click', handleAiGenDesc);
+            document.getElementById('ai-gen-file2-btn').addEventListener('click', handleAiGenFile2);
+
+            showPage('auth-page');
+        }
+
+        init();
+    });
+    </script>
+</body>
+</html>
+
