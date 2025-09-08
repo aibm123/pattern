@@ -224,7 +224,7 @@
                            <!-- Selected pattern details here -->
                         </div>
                         <div class="card p-6">
-                            <h3 class="text-xl font-bold mb-4">Bước 1: Đề xuất Mockup</h3>
+                            <h3 class="text-xl font-bold mb-4">Bước 1: Lấy cảm hứng (Tùy chọn)</h3>
                             <button id="suggest-mockups-btn" class="btn w-full">Gợi ý Mockup với AI</button>
                             <div id="mockup-suggestions-loader" class="hidden mx-auto mt-4 loader"></div>
                             <div id="mockup-suggestions" class="mt-4 space-y-3"></div>
@@ -234,7 +234,7 @@
                     <div class="card p-6">
                         <h3 class="text-xl font-bold mb-4">Bước 2: Sáng tạo Hình ảnh</h3>
                         <div id="generation-area" class="space-y-4">
-                             <p class="text-gray-400 text-center">Chọn một đề xuất ở Bước 1 để bắt đầu.</p>
+                             <!-- This will be populated by renderGeneratorPage -->
                         </div>
                         <div id="generated-image-container" class="mt-4">
                             <div id="generation-loader" class="hidden mx-auto loader"></div>
@@ -367,7 +367,6 @@
                 console.error('Webhook Error:', errorText);
                 throw new Error(`Webhook request failed: ${response.statusText}`);
             }
-             // FIX: Handle text response from webhook
             const responseText = await response.text();
             if (responseText.trim().toLowerCase() === 'success') {
                 return { status: 'success' };
@@ -376,20 +375,35 @@
             }
         }
 
+        // FIX: Replaced unstable proxies with a stable n8n webhook for Base64 conversion
         async function imageUrlToBase64(url) {
-            const proxyUrl = 'https://api.allorigins.win/raw?url=';
+            const webhookUrl = config.n8n.webhook;
+            const payload = {
+                task: 'base64',
+                image_url: url
+            };
             try {
-                const response = await fetch(`${proxyUrl}${encodeURIComponent(url)}`);
-                if (!response.ok) throw new Error(`Failed to fetch through proxy: ${response.statusText}`);
-                const blob = await response.blob();
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Base64 webhook failed: ${response.status}. Response: ${errorText}`);
+                }
+                const result = await response.json();
+                
+                // FIX: Correctly parse the webhook response format: [{ "data": "..." }]
+                const base64String = result[0]?.data; 
+
+                if (!base64String) {
+                    console.error("Webhook response did not contain a valid 'data' property in the first array element. Response:", result);
+                    throw new Error("Could not find base64 data in webhook response.");
+                }
+                return base64String;
             } catch (error) {
-                console.error("Error converting image to Base64:", error);
+                console.error("Error converting image via n8n webhook:", error);
                 return null;
             }
         }
@@ -520,6 +534,7 @@
             });
         }
         
+        // FIX: Decoupled Step 1 and Step 2
         function renderGeneratorPage() {
             if (!state.selectedPattern) return;
             const pattern = state.selectedPattern;
@@ -543,8 +558,15 @@
                 <p class="text-gray-300">${pattern.Notes || ''}</p>
             `;
 
+            const genArea = document.getElementById('generation-area');
+            genArea.innerHTML = `
+                 <p class="font-semibold">Nhập prompt của bạn hoặc chọn gợi ý ở Bước 1:</p>
+                 <textarea id="generation-prompt" rows="3" class="text-sm" placeholder="Ví dụ: Một chiếc áo dài lụa sang trọng với họa tiết..."></textarea>
+                 <button id="generate-image-btn" class="btn w-full">Tạo hình ảnh</button>
+            `;
+            document.getElementById('generate-image-btn').addEventListener('click', handleGenerateImage);
+
             document.getElementById('mockup-suggestions').innerHTML = '';
-            document.getElementById('generation-area').innerHTML = `<p class="text-gray-400 text-center">Chọn một đề xuất ở Bước 1 để bắt đầu.</p>`;
             document.getElementById('generated-image').src = '';
             document.getElementById('generated-image').classList.add('hidden');
             document.getElementById('save-to-collection-btn').classList.add('hidden');
@@ -732,6 +754,7 @@
             } catch (error) { alert('Xóa thất bại: ' + error.message); }
         }
 
+        // FIX: Decoupled Step 1 and Step 2
         async function handleSuggestMockups() {
             if (!state.selectedPattern) return;
             const loader = document.getElementById('mockup-suggestions-loader');
@@ -740,27 +763,25 @@
             loader.classList.remove('hidden');
             btn.disabled = true;
             container.innerHTML = '';
-             // FIX: Sanitize notes field to avoid prompt injection issues.
             const prompt = `Dựa trên họa tiết cổ Việt Nam có tên "${state.selectedPattern.Name}" với mô tả "${state.selectedPattern.Notes || 'Không có mô tả'}", hãy đề xuất 3 ý tưởng mockup sáng tạo để ứng dụng họa tiết này. Với mỗi ý tưởng, hãy cung cấp một tên gọi ngắn gọn (ví dụ: 'Áo dài lụa', 'Bình gốm thời Lê') và một câu lệnh (prompt) chi tiết bằng tiếng Anh để tạo hình ảnh. Định dạng đầu ra là một mảng JSON gồm các đối tượng, mỗi đối tượng có key là 'name' và 'prompt'. Chỉ trả về mảng JSON.`;
             try {
                 const responseText = await generateText(prompt);
                 const suggestions = JSON.parse(responseText.replace(/```json|```/g, '').trim());
                 container.innerHTML = suggestions.map(s => 
-                    `<button class="btn btn-secondary w-full text-left" data-prompt="${s.prompt.replace(/"/g, '&quot;')}">
+                    `<button class="btn btn-secondary w-full text-left suggestion-btn" data-prompt="${s.prompt.replace(/"/g, '&quot;')}">
                         <strong>${s.name}</strong><br>
                         <span class="text-xs text-gray-400">${s.prompt}</span>
                     </button>`
                 ).join('');
-                container.querySelectorAll('button').forEach(button => {
+                
+                container.querySelectorAll('.suggestion-btn').forEach(button => {
                     button.addEventListener('click', () => {
                         const promptText = button.dataset.prompt;
-                        const genArea = document.getElementById('generation-area');
-                        genArea.innerHTML = `
-                             <p class="font-semibold">Prompt đã chọn:</p>
-                             <textarea id="generation-prompt" rows="3" class="text-sm">${promptText}</textarea>
-                             <button id="generate-image-btn" class="btn w-full">Tạo hình ảnh</button>
-                        `;
-                        document.getElementById('generate-image-btn').addEventListener('click', handleGenerateImage);
+                        const promptTextarea = document.getElementById('generation-prompt');
+                        if (promptTextarea) {
+                            promptTextarea.value = promptText;
+                            promptTextarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
                     });
                 });
             } catch (error) {
@@ -815,7 +836,7 @@
             try {
                 const prompt = document.getElementById('generation-prompt').value;
                 const payload = {
-                    task: 'user', // FIX: Changed task name as requested
+                    task: 'user', 
                     name: prompt.substring(0, 50) + '...',
                     prompt: prompt,
                     hub_id: state.selectedPattern.id,
@@ -918,5 +939,4 @@
     </script>
 </body>
 </html>
-
 
