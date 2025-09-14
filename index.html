@@ -309,9 +309,16 @@
                 tableIds: { user: 667631, hub: 667632, gen: 667633 }
             },
             gemini: {
-                apiKey: 'AIzaSyDiUWJuDt0VGce3wGG7jWLKBt3UNRsx1JA',
+                apiKeys: [
+                    'AIzaSyCMDy6BCh1i1Hc4Yx-1PFYOyhyS5xlowgo',
+                    'AIzaSyAMphnnOz6YZjmX_3ZBZna7QNqzZvaPFTc',
+                    'AIzaSyCm7lu-wAHZRG5Lj3KMkoC9-NAudq0Akuw',
+                    'AIzaSyDwnuJ31PWSg2VgMoaa7UjMmg28gnMDz90',
+                    'AIzaSyDiY9RFkuBQkN-hCCu-6mQV98uJPE5jqsw'
+                ],
+                imageApiKey: 'AIzaSyDOYSA7urKkHiKfwsIRkYG4PXvQiTcxDH0',
                 textModel: 'gemini-2.5-flash-preview-05-20',
-                imageModel: 'gemini-2.5-flash-image-preview',
+                imageModel: 'gemini-2.0-flash-exp-image-generation',
             },
             n8n: {
                 webhook: 'https://aps.aibm.space/webhook/pattern1'
@@ -329,6 +336,14 @@
             editingPattern: null, 
             generatedFile2Base64: null,
         };
+
+        let currentGeminiKeyIndex = 0;
+        function getNextGeminiKey() {
+            const key = config.gemini.apiKeys[currentGeminiKeyIndex];
+            currentGeminiKeyIndex = (currentGeminiKeyIndex + 1) % config.gemini.apiKeys.length;
+            console.log(`Using Gemini API Key index: ${currentGeminiKeyIndex}`);
+            return key;
+        }
 
         // --- DOM ELEMENTS ---
         const mainContent = document.getElementById('main-content');
@@ -416,7 +431,8 @@
         });
         
         async function generateText(prompt, useSearch = false) {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.gemini.textModel}:generateContent?key=${config.gemini.apiKey}`;
+            const apiKey = getNextGeminiKey();
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.gemini.textModel}:generateContent?key=${apiKey}`;
             const payload = { contents: [{ parts: [{ text: prompt }] }] };
             if (useSearch) {
                 payload.tools = [{ "google_search": {} }];
@@ -428,10 +444,11 @@
         }
         
         async function generateImage(prompt, base64ImageData) {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.gemini.imageModel}:generateContent?key=${config.gemini.apiKey}`;
+            const apiKey = config.gemini.imageApiKey;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${config.gemini.imageModel}:generateContent?key=${apiKey}`;
             const payload = {
-                contents: [{ parts: [ { text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64ImageData } } ] }],
-                generationConfig: { responseModalities: ['IMAGE'] }
+                contents: [{ parts: [ { text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64ImageData } } ] }],
+                generationConfig: { responseModalities: ["Text", "Image"] }
             };
             const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             if (!response.ok) {
@@ -939,4 +956,8 @@
     </script>
 </body>
 </html>
+
+
+
+
 
